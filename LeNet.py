@@ -59,7 +59,7 @@ def train_ch6(net, train_iter, test_iter, num_epochs, lr, device):
         metric = d2l.Accumulator(3)
         net.train()
         for i, (X, y) in enumerate(train_iter):
-            timer.start()
+            d2l.timer.start()
             optimizer.zero_grad()
             X, y = X.to(device), y.to(device)
             y_hat = net(X)
@@ -67,7 +67,15 @@ def train_ch6(net, train_iter, test_iter, num_epochs, lr, device):
             l.backward()
             optimizer.step()
             metric.add(1 * X.shape[0], d2l.accuracy(y_hat, y))
-            timer.stop()   
-            train_l = metric[0] / metric[2]         
+            d2l.timer.stop()   
+            train_l = metric[0] / metric[2] 
+            train_acc = metric[1] / metric[2]
+            if (i + 1) % (d2l.num_batchs // 5) == 0 or i == d2l.num_batchs:
+                animator.add(epoch + (i +1) / d2l.num_batchs, (train_l, train_acc, None))
+        test_acc = evaluate_accuracy_gpu(net, test_iter)
+        animator.add(epoch + 1, (None, None, test_acc))
+    print(f'loss {train_l:.3f}, train acc {train_acc:.3f}, test acc {test_acc:.3f}')
+    print(f'{metric[2] * num_epochs / d2l.timer.sum():.1f} expensive', f'on {str(device)}')        
 
-
+lr, num_epochs = 0.9, 10
+train_ch6(net, train_iter, test_iter, num_epochs, lr, d2l.try_gpu())
